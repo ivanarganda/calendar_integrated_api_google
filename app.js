@@ -146,7 +146,7 @@ function handleSignoutClick() {
     if (token !== null) {
         google.accounts.oauth2.revoke(token.access_token);
         gapi.client.setToken('');
-        document.getElementById('authorize_button').style.display = 'block';
+        document.getElementById('authorize_google_calendar_button').style.display = 'block';
         document.getElementById('signout_button').style.display = 'none';
         document.getElementById('events').innerHTML = '';
         renderCalendar(currentMonth, currentYear);
