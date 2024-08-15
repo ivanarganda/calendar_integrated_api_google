@@ -1,3 +1,16 @@
+// Google API related code
+const CLIENT_ID = '1042512919810-3j2689t54b3g7uebj351m9bic1d98rq7.apps.googleusercontent.com';
+const API_KEY = 'AIzaSyDPLYZy-AZXUdMk52CggBqVc1wM8SIYKUA';
+const DISCOVERY_DOC = 'https://www.googleapis.com/discovery/v1/apis/calendar/v3/rest';
+const SCOPES = 'https://www.googleapis.com/auth/calendar.readonly';
+
+let tokenClient;
+let gapiInited = false;
+let gisInited = false;
+
+document.getElementById('authorize_google_calendar_button').onclick = handleAuthClick;
+document.getElementById('signout_button').onclick = handleSignoutClick;
+
 let monthNames = ["January", "February", "March", "April", "May", "June",
     "July", "August", "September", "October", "November", "December"];
 
@@ -9,53 +22,67 @@ let events = [];
 async function load_calendar_user() {
     document.getElementById('month').textContent = monthNames[currentMonth];
     document.getElementById('year').textContent = currentYear;
+}
 
-    window.renderCalendar = function (month, year, events = []) {
-        const firstDay = new Date(year, month).getDay();
-        const daysInMonth = 32 - new Date(year, month, 32).getDate();
+window.renderCalendar = function (month, year, events = []) {
+    const daysInMonth = new Date(year, month + 1, 0).getDate(); // Correct days in month calculation
+    const firstDay = new Date(year, month, 1).getDay();
 
-        const calendarBody = document.getElementById('calendar-body');
-        calendarBody.innerHTML = "";
+    const calendarBody = document.getElementById('calendar-body');
+    calendarBody.innerHTML = ""; // Clear the previous calendar
 
-        let date = 1;
-        for (let i = 0; i < 6; i++) {
-            let row = document.createElement('div');
-            row.className = 'calendar-row';
+    let date = 1;
+    for (let i = 0; i < 6; i++) { // Create 6 rows (weeks)
+        let row = document.createElement('div');
+        row.className = 'calendar-row';
 
-            for (let j = 0; j < 7; j++) {
-                let dayCell = document.createElement('div');
-                dayCell.className = 'day-cell';
+        for (let j = 0; j < 7; j++) { // Create 7 columns (days)
+            let dayCell = document.createElement('div');
+            dayCell.className = 'day-cell';
 
-                if (i === 0 && j < firstDay) {
-                    dayCell.classList.add('empty-cell');
-                } else if (date > daysInMonth) {
-                    break;
-                } else {
-                    dayCell.innerHTML = `<span class='date-number'>${date}</span>`;
+            if (i === 0 && j < firstDay) {
+                dayCell.classList.add('empty-cell'); // Empty cells before the first day of the month
+            } else if (date > daysInMonth) {
+                break; // Stop if we have shown all days
+            } else {
+                dayCell.innerHTML = `<span class='date-number'>${date}</span>`;
 
-                    const eventDate = `${year}-${String(month + 1).padStart(2, '0')}-${String(date).padStart(2, '0')}`;
-                    const dayEvents = events.filter(event => event.start.dateTime?.startsWith(eventDate) || event.start.date === eventDate);
+                // Check if there are any events for this date
+                const eventDate = `${year}-${String(month + 1).padStart(2, '0')}-${String(date).padStart(2, '0')}`;
+                const dayEvents = events.filter(event => 
+                    event.start.dateTime?.startsWith(eventDate) || 
+                    event.start.date === eventDate);
 
-                    if (dayEvents.length > 0) {
-                        dayEvents.forEach(event => {
-                            let eventElement = document.createElement('div');
-                            eventElement.className = 'event';
-                            eventElement.innerHTML = event.summary;
-                            eventElement.setAttribute('data-content', event.summary); // Full content in tooltip
-                            dayCell.appendChild(eventElement);
-                        });
-                    }
-
-                    date++;
+                if (dayEvents.length > 0) {
+                    dayEvents.forEach(event => {
+                        let eventElement = document.createElement('div');
+                        eventElement.className = 'event';
+                        eventElement.innerHTML = event.summary;
+                        eventElement.setAttribute('data-content', event.summary); // Tooltip content
+                        dayCell.appendChild(eventElement);
+                    });
                 }
 
-                row.appendChild(dayCell);
+                date++;
             }
-            calendarBody.appendChild(row);
+
+            row.appendChild(dayCell);
+        }
+        calendarBody.appendChild(row);
+
+        if (date > daysInMonth) {
+            break; // Stop creating rows if we've shown all days
         }
     }
+}
 
-    // Do not render the calendar here; it will be rendered after events are fetched
+async function updateCalendar() {
+    document.getElementById('month').textContent = monthNames[currentMonth];
+    document.getElementById('year').textContent = currentYear;
+    if (gapi.client.getToken() !== null) {
+        await listUpcomingEvents(currentMonth, currentYear);
+    }
+    await renderCalendar(currentMonth, currentYear, events);
 }
 
 document.getElementById('prev-month').addEventListener('click', async () => {
@@ -76,24 +103,7 @@ document.getElementById('next-month').addEventListener('click', async () => {
     await updateCalendar();
 });
 
-async function updateCalendar() {
-    document.getElementById('month').textContent = monthNames[currentMonth];
-    document.getElementById('year').textContent = currentYear;
-    await listUpcomingEvents(currentMonth, currentYear);
-}
 
-// Google API related code
-const CLIENT_ID = '1042512919810-3j2689t54b3g7uebj351m9bic1d98rq7.apps.googleusercontent.com';
-const API_KEY = 'AIzaSyDPLYZy-AZXUdMk52CggBqVc1wM8SIYKUA';
-const DISCOVERY_DOC = 'https://www.googleapis.com/discovery/v1/apis/calendar/v3/rest';
-const SCOPES = 'https://www.googleapis.com/auth/calendar.readonly';
-
-let tokenClient;
-let gapiInited = false;
-let gisInited = false;
-
-document.getElementById('authorize_google_calendar_button').onclick = handleAuthClick;
-document.getElementById('signout_button').onclick = handleSignoutClick;
 
 function gapiLoaded() {
     gapi.load('client', initializeGapiClient);
@@ -132,6 +142,7 @@ function handleAuthClick() {
         document.getElementById('signout_button').style.display = 'block';
         document.getElementById('authorize_google_calendar_button').style.display = 'none';
         await listUpcomingEvents(currentMonth, currentYear);
+        await renderCalendar(currentMonth, currentYear, events);
     };
 
     if (gapi.client.getToken() === null) {
@@ -175,7 +186,6 @@ async function listUpcomingEvents(month, year) {
     }
 
     events = response?.result?.items || [];
-    renderCalendar(month, year, events);
 }
 
 // Load the API client and auth2 library
@@ -186,4 +196,5 @@ gapiLoaded();
 window.onload = async () => {
     await load_calendar_user();
     await listUpcomingEvents(currentMonth, currentYear);
+    await renderCalendar(currentMonth, currentYear, events);
 };
