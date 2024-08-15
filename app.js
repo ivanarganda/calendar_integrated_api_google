@@ -55,7 +55,7 @@ async function load_calendar_user() {
         }
     }
 
-    renderCalendar(currentMonth, currentYear);
+    // Do not render the calendar here; it will be rendered after events are fetched
 }
 
 document.getElementById('prev-month').addEventListener('click', async () => {
@@ -83,8 +83,8 @@ async function updateCalendar() {
 }
 
 // Google API related code
-const CLIENT_ID = 'CLIENT_ID.apps.googleusercontent.com';
-const API_KEY = 'API_KEY';
+const CLIENT_ID = '1042512919810-3j2689t54b3g7uebj351m9bic1d98rq7.apps.googleusercontent.com';
+const API_KEY = 'AIzaSyDPLYZy-AZXUdMk52CggBqVc1wM8SIYKUA';
 const DISCOVERY_DOC = 'https://www.googleapis.com/discovery/v1/apis/calendar/v3/rest';
 const SCOPES = 'https://www.googleapis.com/auth/calendar.readonly';
 
@@ -120,7 +120,7 @@ function gisLoaded() {
 
 function maybeEnableButtons() {
     if (gapiInited && gisInited) {
-        document.getElementById('authorize_button').style.display = 'block';
+        document.getElementById('authorize_google_calendar_button').style.display = 'block';
     }
 }
 
@@ -130,7 +130,7 @@ function handleAuthClick() {
             throw (resp);
         }
         document.getElementById('signout_button').style.display = 'block';
-        document.getElementById('authorize_button').style.display = 'none';
+        document.getElementById('authorize_google_calendar_button').style.display = 'none';
         await listUpcomingEvents(currentMonth, currentYear);
     };
 
@@ -175,7 +175,7 @@ async function listUpcomingEvents(month, year) {
     }
 
     events = response?.result?.items || [];
-    renderCalendar(currentMonth, currentYear, events);
+    renderCalendar(month, year, events);
 }
 
 // Load the API client and auth2 library
