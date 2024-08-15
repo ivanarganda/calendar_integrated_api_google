@@ -1,6 +1,6 @@
 // Google API related code
-const CLIENT_ID = '1042512919810-3j2689t54b3g7uebj351m9bic1d98rq7.apps.googleusercontent.com';
-const API_KEY = 'AIzaSyDPLYZy-AZXUdMk52CggBqVc1wM8SIYKUA';
+const CLIENT_ID = 'CLIENT_ID.apps.googleusercontent.com';
+const API_KEY = 'API_KEY';
 const DISCOVERY_DOC = 'https://www.googleapis.com/discovery/v1/apis/calendar/v3/rest';
 const SCOPES = 'https://www.googleapis.com/auth/calendar.readonly';
 
